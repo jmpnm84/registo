@@ -215,8 +215,8 @@
         <div class="card">
             <h2>Configuração do Lote Atual</h2>
             <div class="form-group">
-                <label for="batchName">Nome da Peça / Lote:</label>
-                <input type="text" id="batchName" placeholder="Ex: Referência XYZ">
+                <label for="operatorName">Nome do Operador:</label>
+                <input type="text" id="operatorName" placeholder="Ex: Nome do colaborador">
             </div>
             <div class="form-group">
                 <label for="batchTarget">Quantidade Alvo por Lote:</label>
@@ -253,7 +253,7 @@
                     <tr>
                         <th>Data / Hora</th>
                         <th>Peça / Código</th>
-                        <th>Lote Associado</th>
+                        <th>Operador</th>
                         <th>Estado</th>
                     </tr>
                 </thead>
@@ -278,7 +278,6 @@
 </div>
 
 <script>
-    // URL pré-configurado do Google Apps Script
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxGczibJPSNikqdKQyM6vxXqXhAacyx036A9ch8F5uOqSCahUNzA3J-AJesf9TCBPq6Uw/exec";
 
     let incriminatedParts = new Set();
@@ -286,7 +285,6 @@
     let currentBatchCount = 0;
     let historyData = [];
 
-    // Sincronizar automaticamente ao carregar a página
     window.onload = function() {
         syncGoogleDrive();
     };
@@ -294,7 +292,6 @@
     async function syncGoogleDrive() {
         showAlert("A sincronizar dados do lote incriminado com o Google Drive...", "warning");
         try {
-            // Utiliza o modo 'no-cors' se necessário ou pedido direto caso o GAS permita CORS aberto
             const response = await fetch(SCRIPT_URL);
             const data = await response.json();
             
@@ -305,7 +302,6 @@
             showAlert(`Sincronização bem-sucedida! ${incriminatedParts.size} peças carregadas da Coluna A do Google Sheets.`, "success");
         } catch (error) {
             console.error(error);
-            // Fallback para cache local caso exista bloqueio de CORS de rede local
             const savedInc = localStorage.getItem('incriminated_cache');
             if (savedInc) {
                 JSON.parse(savedInc).forEach(p => incriminatedParts.add(p));
@@ -317,10 +313,10 @@
     }
 
     function saveBatchConfig() {
-        const name = document.getElementById('batchName').value;
+        const operator = document.getElementById('operatorName').value;
         const target = document.getElementById('batchTarget').value;
-        if (!name || !target) {
-            alert("Preencha o nome do lote e a quantidade alvo.");
+        if (!operator || !target) {
+            alert("Preencha o nome do operador e a quantidade alvo.");
             return;
         }
         updateProgress();
@@ -341,20 +337,18 @@
     function processPart(code) {
         const now = new Date();
         const timestamp = now.toLocaleString('pt-PT');
-        const batchName = document.getElementById('batchName').value || "Geral";
+        const operatorName = document.getElementById('operatorName').value || "Não definido";
         const target = parseInt(document.getElementById('batchTarget').value) || 50;
 
         let status = "OK";
         let alertClass = "alert-success";
         let message = `Peça ${code} zipada com sucesso às ${timestamp}.`;
 
-        // 1. Verificar se pertence ao lote incriminado (Coluna A)
         if (incriminatedParts.has(code)) {
             status = "INCRIMINADO";
             alertClass = "alert-danger";
             message = `ALERTA CRÍTICO: A peça ${code} pertence ao LOTE INCRIMINADO!`;
         } 
-        // 2. Detetar se foi zipada duas vezes
         else if (scannedPartsInSession.has(code)) {
             status = "DUPLICADO";
             alertClass = "alert-warning";
@@ -367,12 +361,10 @@
         showAlert(message, alertClass);
         document.getElementById('lastScannedInfo').innerHTML = `Última leitura: <span style="color:var(--primary);">${code}</span> (${status})`;
 
-        // Adicionar ao histórico
-        historyData.unshift({ timestamp, code, batchName, status });
+        historyData.unshift({ timestamp, code, operatorName, status });
         updateHistoryTable();
         updateProgress();
 
-        // Verificar se atingiu a quantidade alvo
         if (currentBatchCount >= target && status !== "INCRIMINADO") {
             document.getElementById('labelModal').style.display = 'flex';
         }
@@ -397,7 +389,7 @@
             tr.innerHTML = `
                 <td>${item.timestamp}</td>
                 <td style="font-weight:bold;">${item.code}</td>
-                <td>${item.batchName}</td>
+                <td>${item.operatorName}</td>
                 <td style="color: ${color}; font-weight: bold;">${item.status}</td>
             `;
             tbody.appendChild(tr);
@@ -417,13 +409,4 @@
             alert("Insira o número da etiqueta.");
             return;
         }
-        alert(`Lote fechado com sucesso! Etiqueta registada: ${tag}`);
-        document.getElementById('labelModal').style.display = 'none';
-        document.getElementById('tagNumberInput').value = '';
-        currentBatchCount = 0;
-        updateProgress();
-    }
-</script>
-
-</body>
-</html>
+        alert
