@@ -386,13 +386,14 @@
             return;
         }
 
-        showAlert("A enviar registos do lote completo para o Google Drive...", "warning");
+        showAlert("A enviar registos do lote completo com a etiqueta para o Google Drive...", "warning");
         
+        // Envia cada registo adicionando o número da etiqueta introduzido
         for (let record of currentBatchRecords) {
-            await sendRecordToDrive(record.timestamp, record.code, record.operatorName, record.status);
+            await sendRecordToDrive(record.timestamp, record.code, record.operatorName, record.status, tag);
         }
 
-        alert(`Lote fechado com sucesso! Etiqueta registada: ${tag} e dados enviados para o Drive.`);
+        alert(`Lote fechado com sucesso! Etiqueta ${tag} registada e dados enviados para o Drive.`);
         document.getElementById('labelModal').style.display = 'none';
         document.getElementById('tagNumberInput').value = '';
         
@@ -403,13 +404,13 @@
         showAlert("Pronto para iniciar novo lote.", "success");
     }
 
-    async function sendRecordToDrive(timestamp, code, operatorName, status) {
+    async function sendRecordToDrive(timestamp, code, operatorName, status, tagNumber) {
         try {
             await fetch(REGISTRAR_SCRIPT_URL, {
                 method: 'POST',
                 mode: 'no-cors',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ timestamp, code, operatorName, status })
+                body: JSON.stringify({ timestamp, code, operatorName, status, tagNumber })
             });
         } catch (e) {
             console.error("Erro ao enviar registo para o Drive:", e);
