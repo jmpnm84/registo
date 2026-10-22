@@ -1,494 +1,429 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Controlo de Zipagem de Peças</title>
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- SheetJS para importação/exportação de Excel/CSV -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    body { font-family: 'Inter', sans-serif; }
-  </style>
-</head>
-<body class="bg-slate-100 text-slate-800 min-h-screen p-4 md:p-6">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controlo de Zipagem e Lote Incriminado</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #ca8a04;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --border: #cbd5e1;
+        }
 
-  <div class="max-w-6xl mx-auto space-y-6">
-    
-    <!-- Cabeçalho -->
-    <header class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
-          <i data-lucide="barcode" class="text-blue-600"></i> Controlo de Zipagem
-        </h1>
-        <p class="text-sm text-slate-500">Linha de Produção & Validation System</p>
-      </div>
-      
-      <!-- Gestão do Lote Incriminado (Excel / CSV) -->
-      <div class="flex items-center gap-3 bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-xs sm:text-sm">
-        <span class="text-slate-600 font-medium">Lote Incriminado:</span>
-        <span id="countIncriminados" class="bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded-full">5474 peças</span>
-        <label class="cursor-pointer bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold px-2.5 py-1 rounded transition flex items-center gap-1">
-          <i data-lucide="upload" class="w-3.5 h-3.5"></i> Atualizar (.xlsx/.csv)
-          <input type="file" id="fileIncriminados" accept=".xlsx, .xls, .csv" class="hidden">
-        </label>
-      </div>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: var(--primary-dark);
+        }
+
+        .sync-box {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input, button {
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: var(--primary-dark);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            margin-top: 0;
+            font-size: 1.2rem;
+            border-bottom: 2px solid var(--bg);
+            padding-bottom: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .scanner-section {
+            background: #eff6ff;
+            border: 2px dashed var(--primary);
+            text-align: center;
+        }
+
+        #barcodeInput {
+            font-size: 1.2rem;
+            text-align: center;
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            background: #f1f5f9;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        .progress-bar-container {
+            background: #e2e8f0;
+            border-radius: 6px;
+            height: 12px;
+            width: 100%;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-bar {
+            background: var(--success);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        #alertBox {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            text-align: center;
+            display: none;
+        }
+        .alert-success { background: #dcfce7; color: var(--success); border: 1px solid #bbf7d0; }
+        .alert-warning { background: #fef9c3; color: var(--warning); border: 1px solid #fef08a; }
+        .alert-danger { background: #fee2e2; color: var(--danger); border: 1px solid #fecaca; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--bg);
+            font-size: 0.9rem;
+        }
+        th { background: #f1f5f9; }
+
+        .modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex; justify-content: center; align-items: center;
+            display: none;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%; max-width: 400px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Controlo de Zipagem & Lotes</h1>
+        <div class="sync-box">
+            <button onclick="syncGoogleDrive()">Sincronizar com Google Drive</button>
+        </div>
     </header>
 
-    <!-- Alertas Sonoros e Notificações Visuais -->
-    <div id="alertBox" class="hidden p-4 rounded-xl border font-bold text-lg text-center shadow-sm flex items-center justify-center gap-3"></div>
+    <div id="alertBox"></div>
 
-    <!-- Painel Principal de Trabalho -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      
-      <!-- Lado Esquerdo: Configuração do Lote e Registo de Peça -->
-      <div class="space-y-6">
-        
-        <!-- 1. Configuração do Lote -->
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
-          <h2 class="font-bold text-slate-700 flex items-center gap-2 text-base border-b pb-2">
-            <i data-lucide="settings" class="w-4 h-4 text-slate-500"></i> Configuração do Lote
-          </h2>
-          
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Nome do Lote</label>
-              <input type="text" id="loteNome" value="LOTE-2026-001" class="w-full p-2 border rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none">
+    <div class="grid">
+        <!-- Configuração do Lote -->
+        <div class="card">
+            <h2>Configuração do Lote Atual</h2>
+            <div class="form-group">
+                <label for="batchName">Nome da Peça / Lote:</label>
+                <input type="text" id="batchName" placeholder="Ex: Referência XYZ">
             </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Qtd. do Lote</label>
-              <input type="number" id="loteQtd" value="10" min="1" class="w-full p-2 border rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none">
+            <div class="form-group">
+                <label for="batchTarget">Quantidade Alvo por Lote:</label>
+                <input type="number" id="batchTarget" min="1" value="50">
             </div>
-          </div>
+            <button onclick="saveBatchConfig()" style="width: 100%;">Guardar / Iniciar Lote</button>
 
-          <!-- Barra de Progresso -->
-          <div class="pt-2">
-            <div class="flex justify-between text-xs font-semibold text-slate-600 mb-1">
-              <span>Progresso</span>
-              <span id="progressText">0 / 10 Peças</span>
+            <div class="stats">
+                <span id="currentCountText">Progresso: 0 / 50</span>
+                <span id="batchStatusText">Em Curso</span>
             </div>
-            <div class="w-full bg-slate-200 h-3 rounded-full overflow-hidden">
-              <div id="progressBar" class="bg-blue-600 h-full w-0 transition-all duration-300"></div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progressBar"></div>
             </div>
-          </div>
         </div>
 
-        <!-- 2. Registo / Scan da Peça -->
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-3">
-          <h2 class="font-bold text-slate-700 flex items-center gap-2 text-base">
-            <i data-lucide="scan-line" class="w-4 h-4 text-blue-600"></i> Registar / Zipar Peça
-          </h2>
-          <p class="text-xs text-slate-500">Passe pelo leitor de código de barras ou prima Enter após digitar.</p>
-          
-          <form id="scanForm" class="space-y-3">
-            <input 
-              type="text" 
-              id="barcodeInput" 
-              placeholder="Aguardando leitura de código..." 
-              autocomplete="off" 
-              class="w-full p-3.5 border-2 border-blue-500 rounded-lg text-lg font-mono font-bold tracking-wide focus:ring-4 focus:ring-blue-100 outline-none transition bg-blue-50/20"
-            >
-            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition flex items-center justify-center gap-2">
-              <i data-lucide="plus-circle" class="w-4 h-4"></i> Registar Peça
-            </button>
-          </form>
-        </div>
-
-      </div>
-
-      <!-- Lado Direito: Histórico e Ações -->
-      <div class="lg:col-span-2 bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between space-y-4">
-        
-        <div>
-          <div class="flex justify-between items-center border-b pb-3 mb-3">
-            <h2 class="font-bold text-slate-700 flex items-center gap-2 text-base">
-              <i data-lucide="list" class="w-4 h-4 text-slate-500"></i> Histórico de Registos do Lote
-            </h2>
-            <div class="flex gap-2">
-              <button id="btnExport" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
-                <i data-lucide="download" class="w-3.5 h-3.5"></i> Exportar Excel
-              </button>
-              <button id="btnClear" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-lg transition">
-                Limpar
-              </button>
+        <!-- Leitor / Registo -->
+        <div class="card scanner-section">
+            <h2>Registar Zipagem</h2>
+            <p style="font-size: 0.85rem; color: #64748b;">Aponte o leitor de códigos de barras ou escreva o código:</p>
+            <div class="form-group">
+                <input type="text" id="barcodeInput" placeholder="Leia o código da peça..." autofocus onkeydown="handleScan(event)">
             </div>
-          </div>
+            <div id="lastScannedInfo" style="margin-top: 15px; font-size: 0.9rem; font-weight: 600;"></div>
+        </div>
+    </div>
 
-          <!-- Tabela de Registos -->
-          <div class="overflow-x-auto max-h-[380px] overflow-y-auto">
-            <table class="w-full text-left text-xs sm:text-sm border-collapse">
-              <thead class="bg-slate-100 text-slate-600 sticky top-0 font-semibold border-b">
-                <tr>
-                  <th class="p-2.5">#</th>
-                  <th class="p-2.5">Código da Peça</th>
-                  <th class="p-2.5">Data e Hora</th>
-                  <th class="p-2.5">Estado</th>
-                  <th class="p-2.5">Etiqueta</th>
-                </tr>
-              </thead>
-              <tbody id="historicoTbody" class="divide-y divide-slate-100 font-mono">
-                <!-- Registos inseridos via JS -->
-              </tbody>
+    <!-- Histórico -->
+    <div class="card">
+        <h2>Histórico de Zipagens Recentes</h2>
+        <div style="max-height: 300px; overflow-y: auto;">
+            <table id="historyTable">
+                <thead>
+                    <tr>
+                        <th>Data / Hora</th>
+                        <th>Peça / Código</th>
+                        <th>Lote Associado</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="historyBody">
+                    <tr><td colspan="4" style="text-align: center; color: #94a3b8;">Nenhum registo efetuado.</td></tr>
+                </tbody>
             </table>
-          </div>
         </div>
-
-      </div>
-
     </div>
-  </div>
+</div>
 
-  <!-- Modal do Fim de Lote / Etiqueta -->
-  <div id="modalEtiqueta" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4 border border-slate-200">
-      <div class="text-center space-y-2">
-        <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
-          <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+<!-- Modal Pedido de Etiqueta -->
+<div class="modal" id="labelModal">
+    <div class="modal-content">
+        <h2>Lote Completo!</h2>
+        <p>A quantidade alvo foi atingida. Insira o número da etiqueta gerada:</p>
+        <div class="form-group">
+            <input type="text" id="tagNumberInput" placeholder="Número da etiqueta...">
         </div>
-        <h3 class="text-xl font-bold text-slate-800">Lote Concluído!</h3>
-        <p class="text-xs text-slate-500">A quantidade total definida para este lote foi atingida com sucesso.</p>
-      </div>
-
-      <div>
-        <label class="block text-xs font-semibold text-slate-700 mb-1">Número de Etiqueta do Lote *</label>
-        <input type="text" id="etiquetaInput" placeholder="Ex: ETQ-99823-A" class="w-full p-2.5 border rounded-lg text-sm font-mono font-bold focus:ring-2 focus:ring-emerald-500 outline-none">
-      </div>
-
-      <button id="btnConfirmarEtiqueta" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-lg transition">
-        Finalizar e Atribuir Etiqueta
-      </button>
+        <button onclick="closeModalAndReset()" style="width: 100%;">Confirmar e Fechar Lote</button>
     </div>
-  </div>
+</div>
 
-  <script>
-    // Inicialização dos Ícones Lucide
-    lucide.createIcons();
+<script>
+    // URL pré-configurado do Google Apps Script
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxGczibJPSNikqdKQyM6vxXqXhAacyx036A9ch8F5uOqSCahUNzA3J-AJesf9TCBPq6Uw/exec";
 
-    // Contexto de Áudio para Sinais Sonoros (Aviso de Incriminado / Sucesso)
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    
-    function playBeep(frequency, duration, type = 'sine') {
-      try {
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = type;
-        osc.frequency.value = frequency;
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
-        osc.stop(audioCtx.currentTime + duration);
-      } catch (e) {
-        console.warn('Erro de áudio:', e);
-      }
-    }
+    let incriminatedParts = new Set();
+    let scannedPartsInSession = new Set();
+    let currentBatchCount = 0;
+    let historyData = [];
 
-    function soundIncriminado() {
-      playBeep(800, 0.2, 'sawtooth');
-      setTimeout(() => playBeep(600, 0.4, 'sawtooth'), 200);
-    }
+    // Sincronizar automaticamente ao carregar a página
+    window.onload = function() {
+        syncGoogleDrive();
+    };
 
-    function soundSuccess() {
-      playBeep(523.25, 0.1);
-      setTimeout(() => playBeep(659.25, 0.15), 100);
-    }
-
-    function soundWarning() {
-      playBeep(400, 0.2, 'square');
-    }
-
-    // Gerar lista incriminada pré-carregada (~5474 peças simuladas)
-    function generateDefaultIncriminados() {
-      const set = new Set();
-      // Peças de exemplo indicadas
-      set.add("292A01736RTA61820001");
-      set.add("292A01736RTA61820002");
-      // Gerar até 5474 no padrão
-      for (let i = 3; i <= 5474; i++) {
-        const num = String(i).padStart(8, '0');
-        set.add(`292A01736RTA${num}`);
-      }
-      return set;
-    }
-
-    // Estado da Aplicação
-    let loteIncriminadoSet = generateDefaultIncriminados();
-    let registos = []; // { id, codigo, dataHora, estado, etiqueta }
-    let numValidos = 0;
-    let etiquetaFinal = "";
-
-    // Elementos DOM
-    const barcodeInput = document.getElementById('barcodeInput');
-    const scanForm = document.getElementById('scanForm');
-    const alertBox = document.getElementById('alertBox');
-    const historicoTbody = document.getElementById('historicoTbody');
-    const progressBar = document.getElementById('progressBar');
-    const progressText = document.getElementById('progressText');
-    const loteNomeInput = document.getElementById('loteNome');
-    const loteQtdInput = document.getElementById('loteQtd');
-    const countIncriminadosSpan = document.getElementById('countIncriminados');
-    const modalEtiqueta = document.getElementById('modalEtiqueta');
-    const etiquetaInput = document.getElementById('etiquetaInput');
-    const btnConfirmarEtiqueta = document.getElementById('btnConfirmarEtiqueta');
-    const btnExport = document.getElementById('btnExport');
-    const btnClear = document.getElementById('btnClear');
-    const fileIncriminados = document.getElementById('fileIncriminados');
-
-    // Manter foco contínuo no campo de leitura
-    function setFocusOnInput() {
-      setTimeout(() => barcodeInput.focus(), 50);
-    }
-    document.addEventListener('click', (e) => {
-      // Não rouba o foco se o utilizador estiver num input editável
-      if (['INPUT', 'BUTTON', 'SELECT'].includes(e.target.tagName)) return;
-      setFocusOnInput();
-    });
-    setFocusOnInput();
-
-    // Atualizar Contagem Inicial de Incriminados
-    function updateIncriminadosCount() {
-      countIncriminadosSpan.textContent = `${loteIncriminadoSet.size} peças`;
-    }
-    updateIncriminadosCount();
-
-    // Data e Hora em Formato PT (DD/MM/AAAA HH:mm:ss)
-    function getFormattedDateTime() {
-      const d = new Date();
-      const pad = (n) => String(n).padStart(2, '0');
-      return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-    }
-
-    // Exibir Mensagem de Alerta na UI
-    function showAlert(msg, type) {
-      alertBox.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'border-red-300', 'bg-yellow-100', 'text-yellow-800', 'border-yellow-300', 'bg-emerald-100', 'text-emerald-800', 'border-emerald-300');
-      
-      if (type === 'danger') {
-        alertBox.classList.add('bg-red-100', 'text-red-700', 'border-red-300');
-        alertBox.innerHTML = `<i data-lucide="alert-triangle" class="w-6 h-6"></i> ${msg}`;
-      } else if (type === 'warning') {
-        alertBox.classList.add('bg-yellow-100', 'text-yellow-800', 'border-yellow-300');
-        alertBox.innerHTML = `<i data-lucide="alert-circle" class="w-6 h-6"></i> ${msg}`;
-      } else if (type === 'success') {
-        alertBox.classList.add('bg-emerald-100', 'text-emerald-800', 'border-emerald-300');
-        alertBox.innerHTML = `<i data-lucide="check-circle" class="w-6 h-6"></i> ${msg}`;
-      }
-      
-      lucide.createIcons();
-    }
-
-    function clearAlert() {
-      alertBox.classList.add('hidden');
-    }
-
-    // Atualizar Progresso do Lote
-    function updateProgress() {
-      const qtdTotal = parseInt(loteQtdInput.value) || 1;
-      const pct = Math.min(Math.round((numValidos / qtdTotal) * 100), 100);
-      
-      progressBar.style.width = `${pct}%`;
-      progressText.textContent = `${numValidos} / ${qtdTotal} Peças (${pct}%)`;
-
-      // Se atingiu o limite, abre o modal de etiqueta
-      if (numValidos >= qtdTotal && !etiquetaFinal) {
-        openModalEtiqueta();
-      }
-    }
-
-    // Processamento do Scan / Inserção
-    scanForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const codigo = barcodeInput.value.trim().toUpperCase();
-      barcodeInput.value = '';
-
-      if (!codigo) return;
-
-      const dataHora = getFormattedDateTime();
-      let estado = 'OK';
-
-      // 1. Verificar Duplicado
-      const registoExistente = registos.find(r => r.codigo === codigo);
-      if (registoExistente) {
-        soundWarning();
-        showAlert(`Atenção: Peça já foi zipada a [${registoExistente.dataHora}]`, 'warning');
-        
-        registos.unshift({
-          id: registos.length + 1,
-          codigo,
-          dataHora,
-          estado: 'DUPLICADO',
-          etiqueta: etiquetaFinal || '-'
-        });
-        
-        renderHistorico();
-        setFocusOnInput();
-        return;
-      }
-
-      // 2. Verificar Lote Incriminado
-      if (loteIncriminadoSet.has(codigo)) {
-        soundIncriminado();
-        showAlert('PEÇA PERTENCE AO LOTE INCRIMINADO!', 'danger');
-        estado = 'INCRIMINADO';
-      } else {
-        soundSuccess();
-        showAlert(`Peça [${codigo}] zipada com sucesso!`, 'success');
-      }
-
-      // Incrementa a contagem de peças válidas
-      numValidos++;
-
-      // Guardar Registo
-      registos.unshift({
-        id: registos.length + 1,
-        codigo,
-        dataHora,
-        estado,
-        etiqueta: etiquetaFinal || '-'
-      });
-
-      renderHistorico();
-      updateProgress();
-      setFocusOnInput();
-    });
-
-    // Renderizar Tabela de Histórico
-    function renderHistorico() {
-      historicoTbody.innerHTML = '';
-      
-      if (registos.length === 0) {
-        historicoTbody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-slate-400 font-sans">Nenhuma peça registada.</td></tr>`;
-        return;
-      }
-
-      registos.forEach(r => {
-        const tr = document.createElement('tr');
-        
-        let badgeClass = 'bg-emerald-100 text-emerald-800';
-        if (r.estado === 'INCRIMINADO') badgeClass = 'bg-red-100 text-red-800 font-bold';
-        if (r.estado === 'DUPLICADO') badgeClass = 'bg-yellow-100 text-yellow-800';
-
-        tr.innerHTML = `
-          <td class="p-2.5 font-sans text-slate-500">${r.id}</td>
-          <td class="p-2.5 font-bold">${r.codigo}</td>
-          <td class="p-2.5 text-slate-600">${r.dataHora}</td>
-          <td class="p-2.5"><span class="px-2 py-0.5 rounded-full text-xs ${badgeClass}">${r.estado}</span></td>
-          <td class="p-2.5 text-slate-600">${r.etiqueta}</td>
-        `;
-        historicoTbody.appendChild(tr);
-      });
-    }
-
-    // Modal de Conclusão do Lote
-    function openModalEtiqueta() {
-      modalEtiqueta.classList.remove('hidden');
-      modalEtiqueta.classList.add('flex');
-      setTimeout(() => etiquetaInput.focus(), 100);
-    }
-
-    btnConfirmarEtiqueta.addEventListener('click', () => {
-      const val = etiquetaInput.value.trim();
-      if (!val) {
-        alert('Por favor, introduza o número da etiqueta.');
-        return;
-      }
-      etiquetaFinal = val;
-      
-      // Atualiza etiquetas na tabela do lote atual
-      registos.forEach(r => {
-        if (r.etiqueta === '-') r.etiqueta = etiquetaFinal;
-      });
-
-      modalEtiqueta.classList.add('hidden');
-      modalEtiqueta.classList.remove('flex');
-      
-      showAlert(`Lote Concluído! Etiqueta [${etiquetaFinal}] atribuída a todas as peças do lote.`, 'success');
-      renderHistorico();
-      setFocusOnInput();
-    });
-
-    // Upload de Ficheiro com Peças Incriminadas (.xlsx / .csv)
-    fileIncriminados.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(evt) {
+    async function syncGoogleDrive() {
+        showAlert("A sincronizar dados do lote incriminado com o Google Drive...", "warning");
         try {
-          const data = new Uint8Array(evt.target.result);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-          const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
-
-          const newSet = new Set();
-          rows.forEach(row => {
-            if (row && row[0]) {
-              newSet.add(String(row[0]).trim().toUpperCase());
+            // Utiliza o modo 'no-cors' se necessário ou pedido direto caso o GAS permita CORS aberto
+            const response = await fetch(SCRIPT_URL);
+            const data = await response.json();
+            
+            incriminatedParts.clear();
+            data.forEach(item => incriminatedParts.add(String(item).trim()));
+            
+            localStorage.setItem('incriminated_cache', JSON.stringify([...incriminatedParts]));
+            showAlert(`Sincronização bem-sucedida! ${incriminatedParts.size} peças carregadas da Coluna A do Google Sheets.`, "success");
+        } catch (error) {
+            console.error(error);
+            // Fallback para cache local caso exista bloqueio de CORS de rede local
+            const savedInc = localStorage.getItem('incriminated_cache');
+            if (savedInc) {
+                JSON.parse(savedInc).forEach(p => incriminatedParts.add(p));
+                showAlert(`Aviso: Erro de rede ao contactar o Drive. A usar cache local (${incriminatedParts.size} peças).`, "warning");
+            } else {
+                showAlert("Erro ao sincronizar com o Google Drive e sem cache local disponível.", "danger");
             }
-          });
-
-          if (newSet.size > 0) {
-            loteIncriminadoSet = newSet;
-            updateIncriminadosCount();
-            showAlert(`Lista de incriminados atualizada! ${newSet.size} peças carregadas.`, 'success');
-          } else {
-            alert('Nenhum código válido encontrado no ficheiro.');
-          }
-        } catch (err) {
-          alert('Erro ao processar ficheiro. Garanta que é um Excel ou CSV válido.');
         }
-      };
-      reader.readAsArrayBuffer(file);
-    });
+    }
 
-    // Exportar Histórico para Excel
-    btnExport.addEventListener('click', () => {
-      if (registos.length === 0) {
-        alert('Não há dados no histórico para exportar.');
-        return;
-      }
-
-      const dataToExport = registos.map(r => ({
-        "N.º": r.id,
-        "Lote": loteNomeInput.value,
-        "Código da Peça": r.codigo,
-        "Data e Hora": r.dataHora,
-        "Estado": r.estado,
-        "Etiqueta": r.etiqueta
-      }));
-
-      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Zipagem Peças");
-      
-      const fileName = `${loteNomeInput.value || 'Lote'}_zipagem_${new Date().toISOString().slice(0,10)}.xlsx`;
-      XLSX.writeFile(workbook, fileName);
-    });
-
-    // Limpar Sessão
-    btnClear.addEventListener('click', () => {
-      if (confirm('Deseja limpar todo o histórico do lote atual?')) {
-        registos = [];
-        numValidos = 0;
-        etiquetaFinal = "";
-        etiquetaInput.value = "";
-        renderHistorico();
+    function saveBatchConfig() {
+        const name = document.getElementById('batchName').value;
+        const target = document.getElementById('batchTarget').value;
+        if (!name || !target) {
+            alert("Preencha o nome do lote e a quantidade alvo.");
+            return;
+        }
         updateProgress();
-        clearAlert();
-        setFocusOnInput();
-      }
-    });
+        showAlert("Configuração de lote guardada com sucesso.", "success");
+    }
 
-    // Eventos de alteração da quantidade do lote
-    loteQtdInput.addEventListener('change', updateProgress);
+    function handleScan(event) {
+        if (event.key === 'Enter') {
+            const input = document.getElementById('barcodeInput');
+            const code = input.value.trim();
+            if (!code) return;
 
-    // Inicialização da Tabela
-    renderHistorico();
-    updateProgress();
-  </script>
+            processPart(code);
+            input.value = '';
+        }
+    }
+
+    function processPart(code) {
+        const now = new Date();
+        const timestamp = now.toLocaleString('pt-PT');
+        const batchName = document.getElementById('batchName').value || "Geral";
+        const target = parseInt(document.getElementById('batchTarget').value) || 50;
+
+        let status = "OK";
+        let alertClass = "alert-success";
+        let message = `Peça ${code} zipada com sucesso às ${timestamp}.`;
+
+        // 1. Verificar se pertence ao lote incriminado (Coluna A)
+        if (incriminatedParts.has(code)) {
+            status = "INCRIMINADO";
+            alertClass = "alert-danger";
+            message = `ALERTA CRÍTICO: A peça ${code} pertence ao LOTE INCRIMINADO!`;
+        } 
+        // 2. Detetar se foi zipada duas vezes
+        else if (scannedPartsInSession.has(code)) {
+            status = "DUPLICADO";
+            alertClass = "alert-warning";
+            message = `ATENÇÃO: A peça ${code} já tinha sido zipada anteriormente nesta sessão!`;
+        } else {
+            scannedPartsInSession.add(code);
+            currentBatchCount++;
+        }
+
+        showAlert(message, alertClass);
+        document.getElementById('lastScannedInfo').innerHTML = `Última leitura: <span style="color:var(--primary);">${code}</span> (${status})`;
+
+        // Adicionar ao histórico
+        historyData.unshift({ timestamp, code, batchName, status });
+        updateHistoryTable();
+        updateProgress();
+
+        // Verificar se atingiu a quantidade alvo
+        if (currentBatchCount >= target && status !== "INCRIMINADO") {
+            document.getElementById('labelModal').style.display = 'flex';
+        }
+    }
+
+    function updateProgress() {
+        const target = parseInt(document.getElementById('batchTarget').value) || 50;
+        const percentage = Math.min(100, (currentBatchCount / target) * 100);
+        document.getElementById('progressBar').style.width = percentage + '%';
+        document.getElementById('currentCountText').innerText = `Progresso: ${currentBatchCount} / ${target}`;
+    }
+
+    function updateHistoryTable() {
+        const tbody = document.getElementById('historyBody');
+        tbody.innerHTML = "";
+        historyData.forEach(item => {
+            let color = "var(--success)";
+            if (item.status === "INCRIMINADO") color = "var(--danger)";
+            if (item.status === "DUPLICADO") color = "var(--warning)";
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${item.timestamp}</td>
+                <td style="font-weight:bold;">${item.code}</td>
+                <td>${item.batchName}</td>
+                <td style="color: ${color}; font-weight: bold;">${item.status}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function showAlert(msg, type) {
+        const box = document.getElementById('alertBox');
+        box.innerText = msg;
+        box.className = `alert-${type}`;
+        box.style.display = 'block';
+    }
+
+    function closeModalAndReset() {
+        const tag = document.getElementById('tagNumberInput').value;
+        if (!tag) {
+            alert("Insira o número da etiqueta.");
+            return;
+        }
+        alert(`Lote fechado com sucesso! Etiqueta registada: ${tag}`);
+        document.getElementById('labelModal').style.display = 'none';
+        document.getElementById('tagNumberInput').value = '';
+        currentBatchCount = 0;
+        updateProgress();
+    }
+</script>
+
 </body>
 </html>
