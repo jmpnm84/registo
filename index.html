@@ -204,7 +204,7 @@
     <header>
         <h1>Controlo de Zipagem & Lotes</h1>
         <div class="sync-box">
-            <button onclick="syncGoogleDrive()">Sincronizar com Google Drive</button>
+            <button onclick="syncGoogleDrive()">Sincronizar Lote Incriminado</button>
         </div>
     </header>
 
@@ -278,10 +278,15 @@
 </div>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxGczibJPSNikqdKQyM6vxXqXhAacyx036A9ch8F5uOqSCahUNzA3J-AJesf9TCBPq6Uw/exec";
+    // URL do script para ir buscar o lote incriminado (Leitura)
+    const SYNC_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxGczibJPSNikqdKQyM6vxXqXhAacyx036A9ch8F5uOqSCahUNzA3J-AJesf9TCBPq6Uw/exec";
+    
+    // URL do script para enviar os registos das peças escaneadas (Escrita) ao atingir o alvo
+    const REGISTRAR_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwIq93caDjgamqJ_PFX0PvBX6abG48FYHpuNACbkdcAovXsYcmNsMJb_CapMoYywOQz/exec";
 
     let incriminatedParts = new Set();
     let scannedPartsInSession = new Set();
+    let currentBatchRecords = []; // Guarda as peças válidas do lote atual para enviar no fim
     let currentBatchCount = 0;
     let historyData = [];
 
@@ -292,7 +297,7 @@
     async function syncGoogleDrive() {
         showAlert("A sincronizar dados do lote incriminado com o Google Drive...", "warning");
         try {
-            const response = await fetch(SCRIPT_URL);
+            const response = await fetch(SYNC_SCRIPT_URL);
             const data = await response.json();
             
             incriminatedParts.clear();
@@ -356,6 +361,8 @@
         } else {
             scannedPartsInSession.add(code);
             currentBatchCount++;
+            // Guarda o registo para enviar para o Drive quando fechar o lote
+            currentBatchRecords.push({ timestamp, code, operatorName, status });
         }
 
         showAlert(message, alertClass);
@@ -365,8 +372,48 @@
         updateHistoryTable();
         updateProgress();
 
+        // Quando atinge o alvo abre o modal e envia os dados para o Drive
         if (currentBatchCount >= target && status !== "INCRIMINADO") {
             document.getElementById('labelModal').style.display = 'flex';
+        }
+    }
+
+    async function closeModalAndReset() {
+        const tag = document.getElementById('tagNumberInput').value;
+        if (!tag) {
+            alert("Insira o número da etiqueta.");
+            return;
+        }
+
+        showAlert("A enviar registos do lote completo para o Google Drive...", "warning");
+        
+        // Enviar todos os registos acumulados do lote para o segundo Apps Script
+        for (let record of currentBatchRecords) {
+            await sendRecordToDrive(record.timestamp, record.code, record.operatorName, record.status);
+        }
+
+        alert(`Lote fechado com sucesso! Etiqueta registada: ${tag} e dados enviados para o Drive.`);
+        document.getElementById('labelModal').style.display = 'none';
+        document.getElementById('tagNumberInput').value = '';
+        
+        // Limpar contagem para o próximo lote
+        currentBatchCount = 0;
+        currentBatchRecords = [];
+        scannedPartsInSession.clear();
+        updateProgress();
+        showAlert("Pronto para iniciar novo lote.", "success");
+    }
+
+    async function sendRecordToDrive(timestamp, code, operatorName, status) {
+        try {
+            await fetch(REGISTRAR_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ timestamp, code, operatorName, status })
+            });
+        } catch (e) {
+            console.error("Erro ao enviar registo para o Drive:", e);
         }
     }
 
@@ -402,11 +449,7 @@
         box.className = `alert-${type}`;
         box.style.display = 'block';
     }
+</script>
 
-    function closeModalAndReset() {
-        const tag = document.getElementById('tagNumberInput').value;
-        if (!tag) {
-            alert("Insira o número da etiqueta.");
-            return;
-        }
-        alert
+</body>
+</html>
