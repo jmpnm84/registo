@@ -41,6 +41,20 @@
             align-items: center;
             flex-wrap: wrap;
             gap: 15px;
+            position: relative;
+        }
+
+        .header-title-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .version-badge {
+            font-size: 0.75rem;
+            color: #64748b;
+            font-weight: 600;
+            letter-spacing: 0.5px;
         }
 
         h1 {
@@ -202,7 +216,10 @@
 
 <div class="container">
     <header>
-        <h1>Controlo de Zipagem & Lotes</h1>
+        <div class="header-title-wrapper">
+            <span class="version-badge">v0.0.1</span>
+            <h1>Controlo de Zipagem & Lotes</h1>
+        </div>
         <div class="sync-box">
             <button onclick="syncGoogleDrive()">Sincronizar Lote Incriminado</button>
         </div>
@@ -220,9 +237,8 @@
             </div>
             <div class="form-group">
                 <label for="batchTarget">Quantidade Alvo por Lote:</label>
-                <input type="number" id="batchTarget" min="1" value="50">
+                <input type="number" id="batchTarget" min="1" value="50" oninput="updateProgress()">
             </div>
-            <button onclick="saveBatchConfig()" style="width: 100%;">Guardar / Iniciar Lote</button>
 
             <div class="stats">
                 <span id="currentCountText">Progresso: 0 / 50</span>
@@ -278,20 +294,18 @@
 </div>
 
 <script>
-    // URL do script para ir buscar o lote incriminado (Leitura)
     const SYNC_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxGczibJPSNikqdKQyM6vxXqXhAacyx036A9ch8F5uOqSCahUNzA3J-AJesf9TCBPq6Uw/exec";
-    
-    // URL do script para enviar os registos das peças escaneadas (Escrita) ao atingir o alvo
     const REGISTRAR_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwIq93caDjgamqJ_PFX0PvBX6abG48FYHpuNACbkdcAovXsYcmNsMJb_CapMoYywOQz/exec";
 
     let incriminatedParts = new Set();
     let scannedPartsInSession = new Set();
-    let currentBatchRecords = []; // Guarda as peças válidas do lote atual para enviar no fim
+    let currentBatchRecords = [];
     let currentBatchCount = 0;
     let historyData = [];
 
     window.onload = function() {
         syncGoogleDrive();
+        updateProgress();
     };
 
     async function syncGoogleDrive() {
@@ -317,17 +331,6 @@
         }
     }
 
-    function saveBatchConfig() {
-        const operator = document.getElementById('operatorName').value;
-        const target = document.getElementById('batchTarget').value;
-        if (!operator || !target) {
-            alert("Preencha o nome do operador e a quantidade alvo.");
-            return;
-        }
-        updateProgress();
-        showAlert("Configuração de lote guardada com sucesso.", "success");
-    }
-
     function handleScan(event) {
         if (event.key === 'Enter') {
             const input = document.getElementById('barcodeInput');
@@ -342,7 +345,7 @@
     function processPart(code) {
         const now = new Date();
         const timestamp = now.toLocaleString('pt-PT');
-        const operatorName = document.getElementById('operatorName').value || "Não definido";
+        const operatorName = document.getElementById('operatorName').value.trim() || "Não definido";
         const target = parseInt(document.getElementById('batchTarget').value) || 50;
 
         let status = "OK";
@@ -361,7 +364,6 @@
         } else {
             scannedPartsInSession.add(code);
             currentBatchCount++;
-            // Guarda o registo para enviar para o Drive quando fechar o lote
             currentBatchRecords.push({ timestamp, code, operatorName, status });
         }
 
@@ -372,14 +374,13 @@
         updateHistoryTable();
         updateProgress();
 
-        // Quando atinge o alvo abre o modal e envia os dados para o Drive
         if (currentBatchCount >= target && status !== "INCRIMINADO") {
             document.getElementById('labelModal').style.display = 'flex';
         }
     }
 
     async function closeModalAndReset() {
-        const tag = document.getElementById('tagNumberInput').value;
+        const tag = document.getElementById('tagNumberInput').value.trim();
         if (!tag) {
             alert("Insira o número da etiqueta.");
             return;
@@ -387,7 +388,6 @@
 
         showAlert("A enviar registos do lote completo para o Google Drive...", "warning");
         
-        // Enviar todos os registos acumulados do lote para o segundo Apps Script
         for (let record of currentBatchRecords) {
             await sendRecordToDrive(record.timestamp, record.code, record.operatorName, record.status);
         }
@@ -396,7 +396,6 @@
         document.getElementById('labelModal').style.display = 'none';
         document.getElementById('tagNumberInput').value = '';
         
-        // Limpar contagem para o próximo lote
         currentBatchCount = 0;
         currentBatchRecords = [];
         scannedPartsInSession.clear();
